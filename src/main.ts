@@ -274,7 +274,9 @@ function drawSuitability(result: SuitabilityWorkerOutput) {
     if (category === 2) {
       color = [31, 191, 104, 170];
     } else if (category === 1) {
+
       color = isWoodland ? [9, 59, 33, 230] : [255, 183, 77, 200];
+
     } else {
       color = [255, 90, 95, 210];
     }
