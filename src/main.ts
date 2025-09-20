@@ -6,9 +6,6 @@ import L from 'leaflet';
 import {
   ATTRIBUTION_TEXT,
   ENABLE_WEATHER_OVERLAY,
-  MAP_INITIAL_CENTER,
-  MAP_INITIAL_ZOOM,
-  MAP_VIEW_BOUNDS,
   SAMPLE_GRID_SIZE,
   UPDATE_DEBOUNCE_MS,
   USE_MOCK_DATA,
@@ -34,15 +31,23 @@ app.innerHTML = `
   <aside class="sidebar" data-open="false">
     <header>
       <h1>ShroomMap</h1>
-      <h2>California Liberty Cap Suitability</h2>
+      <h2>UK Liberty Cap Suitability</h2>
     </header>
     <main>
       <section class="section">
-        <h3>Data sources</h3>
-        <ul class="layer-list">
-          <li>Soil: ISRIC SoilGrids v2.0 (tile T36059)</li>
-          <li>Land cover proxy: SoilGrids USDA taxonomy</li>
-        </ul>
+        <h3>Data layers</h3>
+        <div class="layer-toggle">
+          <label>
+            <input id="soil-layer-toggle" type="checkbox" checked />
+            <span>Soil Data: SoilGrids (ISRIC)</span>
+          </label>
+        </div>
+        <div class="layer-toggle">
+          <label>
+            <input id="land-layer-toggle" type="checkbox" checked />
+            <span>Land Cover: ESA WorldCover</span>
+          </label>
+        </div>
       </section>
       <section class="section">
         <h3>Controls</h3>
@@ -98,6 +103,8 @@ sidebarToggle?.addEventListener('click', () => {
 });
 
 
+const soilToggle = document.getElementById('soil-layer-toggle') as HTMLInputElement;
+const landToggle = document.getElementById('land-layer-toggle') as HTMLInputElement;
 const refreshButton = document.getElementById('refresh-button') as HTMLButtonElement;
 const refreshSpinner = document.getElementById('refresh-spinner') as HTMLSpanElement;
 const statusMessage = document.getElementById('status-message');
@@ -110,23 +117,63 @@ const poorCountEl = document.getElementById('poor-count');
 
 const map = L.map('map', {
   preferCanvas: true,
-  minZoom: 7,
-  maxZoom: 14,
+  minZoom: 5,
+  maxZoom: 18,
   zoomControl: true,
   attributionControl: true
-}).setView([MAP_INITIAL_CENTER.lat, MAP_INITIAL_CENTER.lon], MAP_INITIAL_ZOOM);
+}).setView([54.5, -2.5], 6);
 
-map.setMaxBounds([
-  [MAP_VIEW_BOUNDS.minLat, MAP_VIEW_BOUNDS.minLon],
-  [MAP_VIEW_BOUNDS.maxLat, MAP_VIEW_BOUNDS.maxLon]
-]);
+const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 18,
+  attribution: '© OpenStreetMap contributors'
+});
+osmLayer.addTo(map);
 
 const soilClient = new SoilGridsClient();
 const worldCoverClient = new WorldCoverClient();
 const weatherClient = ENABLE_WEATHER_OVERLAY ? new WeatherClient() : null;
 
+const soilDataLayer = L.tileLayer.wms('https://maps.isric.org/mapserv?map=/mapfiles/soilgrids.map', {
+  layers: 'phh2o_0-5cm_mean',
+  format: 'image/png',
+  transparent: true,
+  opacity: 0.55,
+  attribution: 'SoilGrids v2.0 (ISRIC)'
+});
+
+const worldCoverLayer = L.tileLayer.wms('https://services.terrascope.be/wms/v2', {
+  layers: 'WORLDCOVER_2021_MAP',
+  format: 'image/png',
+  transparent: true,
+  opacity: 0.45,
+  attribution: 'ESA WorldCover 10m'
+});
+
+const overlayControl = L.control.layers(undefined, {
+  'Soil Data: SoilGrids (ISRIC)': soilDataLayer,
+  [`Land Cover: ESA WorldCover (${worldCoverClient.releaseLabel})`]: worldCoverLayer
+});
+overlayControl.addTo(map);
+
 map.attributionControl.setPrefix('');
-map.attributionControl.addAttribution(ATTRIBUTION_TEXT);
+map.attributionControl.addAttribution(`${ATTRIBUTION_TEXT} | ESA WorldCover ${worldCoverClient.releaseLabel}`);
+
+soilToggle.addEventListener('change', () => {
+  if (soilToggle.checked) {
+    soilDataLayer.addTo(map);
+  } else {
+    map.removeLayer(soilDataLayer);
+  }
+});
+landToggle.addEventListener('change', () => {
+  if (landToggle.checked) {
+    worldCoverLayer.addTo(map);
+  } else {
+    map.removeLayer(worldCoverLayer);
+  }
+});
+soilDataLayer.addTo(map);
+worldCoverLayer.addTo(map);
 
 const worker = new SuitabilityWorker();
 
