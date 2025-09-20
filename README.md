@@ -1,4 +1,4 @@
-# ShroomMap – Liberty Cap Finder (UK)
+# ShroomMap – Liberty Cap Finder
 
 ShroomMap is a simple interactive map that helps highlight the best areas in the UK for finding **Psilocybe semilanceata** (liberty caps).  
 It combines soil and land cover data to show how suitable the ground is, giving you a quick way to check new spots.  
