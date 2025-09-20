@@ -1,4 +1,49 @@
+import { unzipSync } from 'fflate';
+
 const textDecoder = new TextDecoder();
+
+function arrayBufferFromView(view: Uint8Array): ArrayBuffer {
+  return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
+}
+
+function looksLikeZipArchive(buffer: ArrayBuffer): boolean {
+  if (buffer.byteLength < 4) {
+    return false;
+  }
+  const signature = new Uint8Array(buffer, 0, 4);
+  const isPkZip = signature[0] === 0x50 && signature[1] === 0x4b;
+  if (!isPkZip) {
+    return false;
+  }
+  const typeByte = signature[2];
+  const validTypes = [0x03, 0x05, 0x07];
+  return validTypes.includes(typeByte);
+}
+
+export function extractGeoTiffBuffer(source: ArrayBuffer): ArrayBuffer {
+  if (!looksLikeZipArchive(source)) {
+    return source;
+  }
+
+  try {
+    const entries = unzipSync(new Uint8Array(source));
+    const entryNames = Object.keys(entries);
+    if (entryNames.length === 0) {
+      throw new Error('Archive contained no files');
+    }
+
+    const preferredName =
+      entryNames.find((name) => /\.tiff?$/i.test(name)) ?? entryNames[0];
+    const extracted = entries[preferredName];
+    if (!(extracted instanceof Uint8Array)) {
+      throw new Error(`Unexpected entry type for "${preferredName}"`);
+    }
+    return arrayBufferFromView(extracted);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to extract GeoTIFF from archive: ${message}`);
+  }
+}
 
 function normaliseWhitespace(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
