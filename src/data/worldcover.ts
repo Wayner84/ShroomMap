@@ -10,6 +10,7 @@ import {
 import { InFlightMap, TimedCache } from './cache';
 import type { LandCoverGrid } from '../types';
 import { mockWorldCover } from './mock/worldcover';
+import { ensureGeoTiffResponse, wrapGeoTiffDecode } from '../utils/geotiff';
 
 const CACHE_TTL_MS = 1000 * 60 * 30;
 const COVERAGE_ID = 'urn:cgls:worldcover:v200:2021';
@@ -103,9 +104,27 @@ export class WorldCoverClient {
     const url = `${WORLDCOVER_WCS_BASE}?${params.toString()}`;
     const response = await fetchWithBackoff(url, signal);
     const arrayBuffer = await response.arrayBuffer();
-    const tiff = await fromArrayBuffer(arrayBuffer);
-    const image = await tiff.getImage();
-    const raster = (await image.readRasters({ interleave: true })) as Uint16Array | Uint8Array;
+    ensureGeoTiffResponse({
+      source: 'WorldCover',
+      response,
+      buffer: arrayBuffer,
+      coverageId: COVERAGE_ID
+    });
+    const tiff = await wrapGeoTiffDecode({
+      source: 'WorldCover',
+      coverageId: COVERAGE_ID,
+      fn: () => fromArrayBuffer(arrayBuffer)
+    });
+    const image = await wrapGeoTiffDecode({
+      source: 'WorldCover',
+      coverageId: COVERAGE_ID,
+      fn: () => tiff.getImage()
+    });
+    const raster = (await wrapGeoTiffDecode({
+      source: 'WorldCover',
+      coverageId: COVERAGE_ID,
+      fn: () => image.readRasters({ interleave: true })
+    })) as Uint16Array | Uint8Array;
     const typed =
       raster instanceof Uint16Array
         ? Uint8Array.from(raster)

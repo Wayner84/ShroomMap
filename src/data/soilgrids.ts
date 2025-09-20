@@ -10,6 +10,7 @@ import {
 import { InFlightMap, TimedCache } from './cache';
 import type { SoilGrid, SoilProperty } from '../types';
 import { mockSoilGrid } from './mock/soilgrids';
+import { ensureGeoTiffResponse, wrapGeoTiffDecode } from '../utils/geotiff';
 
 const COVERAGE_IDS: Record<SoilProperty, string> = {
   orcdrc: `orcdrc_${DEFAULT_DEPTH}_mean`,
@@ -132,9 +133,27 @@ export class SoilGridsClient {
         const url = `${SOILGRIDS_WCS_BASE}&${params.toString()}`;
         const response = await fetchWithBackoff(url, signal);
         const arrayBuffer = await response.arrayBuffer();
-        const tiff = await fromArrayBuffer(arrayBuffer);
-        const image = await tiff.getImage();
-        const raster = (await image.readRasters({ interleave: true })) as Float32Array;
+        ensureGeoTiffResponse({
+          source: 'SoilGrids',
+          response,
+          buffer: arrayBuffer,
+          coverageId
+        });
+        const tiff = await wrapGeoTiffDecode({
+          source: 'SoilGrids',
+          coverageId,
+          fn: () => fromArrayBuffer(arrayBuffer)
+        });
+        const image = await wrapGeoTiffDecode({
+          source: 'SoilGrids',
+          coverageId,
+          fn: () => tiff.getImage()
+        });
+        const raster = (await wrapGeoTiffDecode({
+          source: 'SoilGrids',
+          coverageId,
+          fn: () => image.readRasters({ interleave: true })
+        })) as Float32Array;
         return [property, raster] as const;
       })
     );
