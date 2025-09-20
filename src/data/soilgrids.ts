@@ -10,7 +10,7 @@ import {
 import { InFlightMap, TimedCache } from './cache';
 import type { SoilGrid, SoilProperty } from '../types';
 import { mockSoilGrid } from './mock/soilgrids';
-import { ensureGeoTiffResponse, wrapGeoTiffDecode } from '../utils/geotiff';
+import { ensureGeoTiffResponse, extractGeoTiffBuffer, wrapGeoTiffDecode } from '../utils/geotiff';
 
 const COVERAGE_IDS: Record<SoilProperty, string> = {
   orcdrc: `orcdrc_${DEFAULT_DEPTH}_mean`,
@@ -132,7 +132,8 @@ export class SoilGridsClient {
 
         const url = `${SOILGRIDS_WCS_BASE}&${params.toString()}`;
         const response = await fetchWithBackoff(url, signal);
-        const arrayBuffer = await response.arrayBuffer();
+        const responseBuffer = await response.arrayBuffer();
+        const arrayBuffer = extractGeoTiffBuffer(responseBuffer);
         ensureGeoTiffResponse({
           source: 'SoilGrids',
           response,

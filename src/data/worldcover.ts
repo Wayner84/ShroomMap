@@ -10,7 +10,7 @@ import {
 import { InFlightMap, TimedCache } from './cache';
 import type { LandCoverGrid } from '../types';
 import { mockWorldCover } from './mock/worldcover';
-import { ensureGeoTiffResponse, wrapGeoTiffDecode } from '../utils/geotiff';
+import { ensureGeoTiffResponse, extractGeoTiffBuffer, wrapGeoTiffDecode } from '../utils/geotiff';
 
 const CACHE_TTL_MS = 1000 * 60 * 30;
 const COVERAGE_ID = 'urn:cgls:worldcover:v200:2021';
@@ -103,7 +103,8 @@ export class WorldCoverClient {
 
     const url = `${WORLDCOVER_WCS_BASE}?${params.toString()}`;
     const response = await fetchWithBackoff(url, signal);
-    const arrayBuffer = await response.arrayBuffer();
+    const responseBuffer = await response.arrayBuffer();
+    const arrayBuffer = extractGeoTiffBuffer(responseBuffer);
     ensureGeoTiffResponse({
       source: 'WorldCover',
       response,
