@@ -9,12 +9,13 @@ It combines soil and land cover data to show how suitable the ground is, giving 
 
 ## ✨ Features
 
-- Clean, responsive map with sidebar controls  
-- Suitability heatmap that updates live as you move around  
-- Uses SoilGrids + WorldCover to calculate “ideal / caution / poor” zones  
-- Runs all the heavy number-crunching in a web worker (keeps it fast and smooth)  
-- Offline “mock mode” for testing without internet  
-- Quick refresh button to reload data  
+- Clean, responsive map with sidebar controls
+- Suitability heatmap that updates live as you move around
+- Uses SoilGrids + WorldCover to calculate “ideal / caution / poor” zones
+- Weather overlay blends recent rainfall & temperature into the suitability map
+- Runs all the heavy number-crunching in a web worker (keeps it fast and smooth)
+- Offline “mock mode” for testing without internet
+- Quick refresh button to reload data
 
 ---
 
@@ -62,6 +63,8 @@ You can override settings with a `.env.local` file (ignored by git).
 | `VITE_SOILGRIDS_WCS_URL` | SoilGrids endpoint | `https://maps.isric.org/...` |
 | `VITE_WORLDCOVER_WCS_URL` | WorldCover endpoint | `https://services.terrascope.be/...` |
 | `VITE_USE_MOCK` | Use offline mock data | `false` |
+| `VITE_ENABLE_WEATHER` | Toggle the weather overlay | `true` |
+| `VITE_WEATHER_API_URL` | Weather summary API base | `https://api.open-meteo.com/v1/forecast` |
 
 ---
 
@@ -84,7 +87,7 @@ This is combined with land cover (grassland, heath, woodland edge = best) to giv
 ## ⚠️ Notes
 
 - Works best with a steady internet connection (pulls data live)  
-- Rainfall/weather overlays are not active yet (planned feature)  
+- Weather overlay uses recent rainfall + temperature to show when “needs rain” areas are primed
 - Mock mode is for testing only, not real results  
 
 ---

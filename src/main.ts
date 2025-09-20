@@ -5,6 +5,7 @@ import L from 'leaflet';
 
 import {
   ATTRIBUTION_TEXT,
+  ENABLE_WEATHER_OVERLAY,
   SAMPLE_GRID_SIZE,
   UPDATE_DEBOUNCE_MS,
   USE_MOCK_DATA,
@@ -12,8 +13,10 @@ import {
 } from './config';
 import { SoilGridsClient } from './data/soilgrids';
 import { WorldCoverClient } from './data/worldcover';
+import { WeatherClient } from './data/weather';
 import { debounce } from './utils/debounce';
-import type { LandCoverGrid, SoilGrid, SuitabilityWorkerOutput } from './types';
+import type { LandCoverGrid, SoilGrid, SuitabilityWorkerOutput, WeatherGrid } from './types';
+import { WeatherOverlay } from './types';
 import SuitabilityWorker from './workers/suitabilityWorker?worker';
 
 const app = document.getElementById('app');
@@ -125,6 +128,7 @@ osmLayer.addTo(map);
 
 const soilClient = new SoilGridsClient();
 const worldCoverClient = new WorldCoverClient();
+const weatherClient = ENABLE_WEATHER_OVERLAY ? new WeatherClient() : null;
 
 const soilDataLayer = L.tileLayer.wms('https://maps.isric.org/mapserv?map=/mapfiles/soilgrids.map', {
   layers: 'phh2o_0-5cm_mean',
@@ -176,6 +180,7 @@ let latestResult: SuitabilityWorkerOutput | null = null;
 let latestSoil: SoilGrid | null = null;
 let latestLand: LandCoverGrid | null = null;
 let latestBBox: BoundingBox | null = null;
+let latestWeather: WeatherGrid | null = null;
 
 function isSuitabilityWorkerOutput(value: unknown): value is SuitabilityWorkerOutput {
   if (!value || typeof value !== 'object') {
@@ -199,6 +204,7 @@ function isSuitabilityWorkerOutput(value: unknown): value is SuitabilityWorkerOu
     candidate.categories instanceof Uint8Array &&
     candidate.scores instanceof Float32Array &&
     candidate.woodlandMask instanceof Uint8Array &&
+    candidate.weatherMask instanceof Uint8Array &&
     hasCounts
   );
 }
@@ -257,6 +263,15 @@ function cloneLand(grid: LandCoverGrid): LandCoverGrid {
   };
 }
 
+function cloneWeather(grid: WeatherGrid): WeatherGrid {
+  return {
+    width: grid.width,
+    height: grid.height,
+    precipitation: new Float32Array(grid.precipitation),
+    temperature: new Float32Array(grid.temperature)
+  };
+}
+
 function setPending(isPending: boolean) {
   refreshButton.disabled = isPending;
   if (isPending) {
@@ -292,10 +307,19 @@ function drawSuitability(result: SuitabilityWorkerOutput) {
     return;
   }
   const imageData = offscreenCtx.createImageData(result.width, result.height);
+  const blendColor = (
+    base: [number, number, number, number],
+    overlay: [number, number, number],
+    factor: number
+  ): [number, number, number, number] => {
+    const mix = (from: number, to: number) => Math.round(from * (1 - factor) + to * factor);
+    return [mix(base[0], overlay[0]), mix(base[1], overlay[1]), mix(base[2], overlay[2]), base[3]];
+  };
   for (let idx = 0; idx < result.categories.length; idx += 1) {
     const category = result.categories[idx];
     const baseIndex = idx * 4;
     const isWoodland = result.woodlandMask[idx] === 1;
+    const weatherState = result.weatherMask[idx] ?? WeatherOverlay.Neutral;
     let color: [number, number, number, number];
     if (category === 2) {
       color = [31, 191, 104, 170];
@@ -305,6 +329,12 @@ function drawSuitability(result: SuitabilityWorkerOutput) {
 
     } else {
       color = [255, 90, 95, 210];
+    }
+
+    if (weatherState === WeatherOverlay.Dry) {
+      color = blendColor(color, [255, 220, 120], 0.45);
+    } else if (weatherState === WeatherOverlay.Favourable) {
+      color = blendColor(color, [64, 156, 255], 0.4);
     }
     imageData.data[baseIndex] = color[0];
     imageData.data[baseIndex + 1] = color[1];
@@ -390,39 +420,60 @@ async function requestUpdate({ forceFromCache = false } = {}) {
     statusMessage.textContent = '';
   }
 
+  const wantWeather = ENABLE_WEATHER_OVERLAY && weatherClient !== null;
+
   if (forceFromCache && latestSoil && latestLand && bboxAlmostEqual(latestBBox, bbox)) {
+    const cachedWeather = wantWeather && latestWeather ? cloneWeather(latestWeather) : null;
     worker.postMessage({
       soil: cloneSoil(latestSoil),
       landCover: cloneLand(latestLand),
+      weather: cachedWeather ?? undefined,
       bbox: { ...latestBBox! },
       requestId,
-      config: { includeWeather: false }
+      config: { includeWeather: !!cachedWeather }
     });
     return;
   }
 
   soilClient.cancelPending();
   worldCoverClient.cancelPending();
+  weatherClient?.cancelPending();
 
   const width = SAMPLE_GRID_SIZE;
   const height = SAMPLE_GRID_SIZE;
 
   try {
-    const [soilGrid, landCoverGrid] = await Promise.all([
+    const weatherPromise: Promise<WeatherGrid | null> =
+      wantWeather && weatherClient
+        ? weatherClient
+            .fetchGrid(bbox, width, height)
+            .then((grid) => grid)
+            .catch((error) => {
+              if (import.meta.env.DEV) {
+                console.warn('Weather overlay unavailable', error);
+              }
+              return null;
+            })
+        : Promise.resolve<WeatherGrid | null>(null);
+
+    const [soilGrid, landCoverGrid, weatherGrid] = await Promise.all([
       soilClient.fetchGrid(bbox, width, height),
-      worldCoverClient.fetchGrid(bbox, width, height)
+      worldCoverClient.fetchGrid(bbox, width, height),
+      weatherPromise
     ]);
 
     latestSoil = cloneSoil(soilGrid);
     latestLand = cloneLand(landCoverGrid);
     latestBBox = { ...bbox };
+    latestWeather = weatherGrid ? cloneWeather(weatherGrid) : null;
 
     worker.postMessage({
       soil: cloneSoil(soilGrid),
       landCover: cloneLand(landCoverGrid),
+      weather: weatherGrid ? cloneWeather(weatherGrid) : undefined,
       bbox: { ...bbox },
       requestId,
-      config: { includeWeather: false }
+      config: { includeWeather: !!weatherGrid }
     });
   } catch (error) {
     handleError(error);
