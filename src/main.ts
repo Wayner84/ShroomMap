@@ -269,11 +269,12 @@ function drawSuitability(result: SuitabilityWorkerOutput) {
   for (let idx = 0; idx < result.categories.length; idx += 1) {
     const category = result.categories[idx];
     const baseIndex = idx * 4;
+    const isWoodland = result.woodlandMask[idx] === 1;
     let color: [number, number, number, number];
     if (category === 2) {
       color = [31, 191, 104, 170];
     } else if (category === 1) {
-      color = [255, 183, 77, 200];
+      color = isWoodland ? [18, 92, 43, 200] : [255, 183, 77, 200];
     } else {
       color = [255, 90, 95, 210];
     }
