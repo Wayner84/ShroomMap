@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "download:soil": "node scripts/download-soil-tile.mjs"
   },
   "dependencies": {
     "geotiff": "^2.1.3",
