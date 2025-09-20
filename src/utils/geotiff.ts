@@ -1,4 +1,6 @@
 import { gunzipSync, unzipSync } from 'fflate';
+import { unzipSync } from 'fflate';
+
 
 const textDecoder = new TextDecoder();
 
@@ -31,6 +33,15 @@ function looksLikeGzipStream(buffer: ArrayBuffer): boolean {
 function extractFromZip(view: Uint8Array): ArrayBuffer {
   try {
     const entries = unzipSync(view);
+
+export function extractGeoTiffBuffer(source: ArrayBuffer): ArrayBuffer {
+  if (!looksLikeZipArchive(source)) {
+    return source;
+  }
+
+  try {
+    const entries = unzipSync(new Uint8Array(source));
+
     const entryNames = Object.keys(entries);
     if (entryNames.length === 0) {
       throw new Error('Archive contained no files');
@@ -45,6 +56,7 @@ function extractFromZip(view: Uint8Array): ArrayBuffer {
     return arrayBufferFromView(extracted);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+
     throw new Error(`Failed to extract GeoTIFF from ZIP archive: ${message}`);
   }
 }
@@ -69,6 +81,7 @@ export function extractGeoTiffBuffer(source: ArrayBuffer): ArrayBuffer {
   }
 
   return source;
+
 }
 
 function normaliseWhitespace(value: string): string {

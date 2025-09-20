@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 
+
 import { gzipSync, zipSync } from 'fflate';
+
 
 import { ensureGeoTiffResponse, extractGeoTiffBuffer, wrapGeoTiffDecode } from '../src/utils/geotiff';
 
@@ -35,6 +37,7 @@ describe('extractGeoTiffBuffer', () => {
     expect(new Uint8Array(extracted)).toEqual(payload);
   });
 
+
   it('inflates GeoTIFF data wrapped in a gzip stream', () => {
     const tifData = new Uint8Array([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00]);
     const compressed = gzipSync(tifData);
@@ -42,6 +45,7 @@ describe('extractGeoTiffBuffer', () => {
     const extracted = extractGeoTiffBuffer(toArrayBuffer(compressed));
     expect(new Uint8Array(extracted)).toEqual(tifData);
   });
+
 });
 
 describe('ensureGeoTiffResponse', () => {
