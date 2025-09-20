@@ -177,6 +177,32 @@ let latestSoil: SoilGrid | null = null;
 let latestLand: LandCoverGrid | null = null;
 let latestBBox: BoundingBox | null = null;
 
+function isSuitabilityWorkerOutput(value: unknown): value is SuitabilityWorkerOutput {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+
+  const candidate = value as Partial<SuitabilityWorkerOutput>;
+  const counts = candidate.countsByCategory;
+  const hasCounts =
+    !!counts &&
+    typeof counts.ideal === 'number' &&
+    typeof counts.caution === 'number' &&
+    typeof counts.poor === 'number';
+
+  return (
+    typeof candidate.requestId === 'number' &&
+    typeof candidate.width === 'number' &&
+    typeof candidate.height === 'number' &&
+    typeof candidate.sampleCount === 'number' &&
+    typeof candidate.averageScore === 'number' &&
+    candidate.categories instanceof Uint8Array &&
+    candidate.scores instanceof Float32Array &&
+    candidate.woodlandMask instanceof Uint8Array &&
+    hasCounts
+  );
+}
+
 sidebarToggle?.addEventListener('click', () => {
   const open = sidebar?.dataset.open === 'true';
   if (sidebar) {
@@ -302,19 +328,22 @@ function drawSuitability(result: SuitabilityWorkerOutput) {
 
 function updateStats(result: SuitabilityWorkerOutput) {
   if (averageScoreEl) {
-    averageScoreEl.textContent = `${result.averageScore.toFixed(1)}`;
+    averageScoreEl.textContent =
+      result.sampleCount > 0 ? result.averageScore.toFixed(1) : '–';
   }
   if (sampleCountEl) {
-    sampleCountEl.textContent = `${result.sampleCount} sampled cells`;
+    const formattedCount = result.sampleCount.toLocaleString();
+    const suffix = result.sampleCount === 1 ? 'sampled cell' : 'sampled cells';
+    sampleCountEl.textContent = `${formattedCount} ${suffix}`;
   }
   if (idealCountEl) {
-    idealCountEl.textContent = `${result.countsByCategory.ideal}`;
+    idealCountEl.textContent = `${result.countsByCategory.ideal.toLocaleString()}`;
   }
   if (cautionCountEl) {
-    cautionCountEl.textContent = `${result.countsByCategory.caution}`;
+    cautionCountEl.textContent = `${result.countsByCategory.caution.toLocaleString()}`;
   }
   if (poorCountEl) {
-    poorCountEl.textContent = `${result.countsByCategory.poor}`;
+    poorCountEl.textContent = `${result.countsByCategory.poor.toLocaleString()}`;
   }
 }
 
@@ -324,12 +353,23 @@ function handleWorkerResult(result: SuitabilityWorkerOutput) {
   }
   lastCompletedRequest = result.requestId;
   latestResult = result;
-  drawSuitability(result);
-  updateStats(result);
-  setPending(false);
+  try {
+    drawSuitability(result);
+    updateStats(result);
+  } catch (error) {
+    console.error('Failed to process suitability result', error);
+  } finally {
+    setPending(false);
+  }
 }
 
-worker.onmessage = (event: MessageEvent<SuitabilityWorkerOutput>) => {
+worker.onmessage = (event: MessageEvent<unknown>) => {
+  if (!isSuitabilityWorkerOutput(event.data)) {
+    if (import.meta.env.DEV) {
+      console.warn('Ignoring unexpected worker message', event.data);
+    }
+    return;
+  }
   handleWorkerResult(event.data);
 };
 
