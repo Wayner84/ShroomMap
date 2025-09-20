@@ -13,6 +13,16 @@
             box-sizing: border-box;
         }
 
+        :root {
+            --color-ideal: #2ecc71;
+            --color-ideal-border: #1b7f4b;
+            --color-caution: #ffb74d;
+            --color-caution-border: #c77800;
+            --color-poor: #ff5a5f;
+            --color-poor-border: #b71c1c;
+            --color-average: #7bb0ff;
+        }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
             background: #1a1a1a;
@@ -186,27 +196,70 @@
         }
 
         .legend {
-            background: rgba(0,0,0,0.2);
+            background: rgba(0,0,0,0.25);
+            padding: 20px;
+            border-top: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .legend h3 {
+            color: #c5e6a8;
+            margin-bottom: 0;
+        }
+
+        .legend-description {
+            font-size: 0.8em;
+            color: #9fb78b;
+            line-height: 1.4;
         }
 
         .legend-item {
             display: flex;
-            align-items: center;
-            margin-bottom: 8px;
+            align-items: flex-start;
+            gap: 12px;
             font-size: 0.9em;
         }
 
-        .legend-color {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            margin-right: 10px;
-            border: 1px solid rgba(255,255,255,0.3);
+        .legend-item strong {
+            display: block;
+            color: #e0f2f1;
+            margin-bottom: 2px;
         }
 
-        .legend-color.ideal { background: #4CAF50; }
-        .legend-color.good { background: #FF9800; }
-        .legend-color.poor { background: #F44336; }
+        .legend-detail {
+            font-size: 0.75em;
+            color: #b8d49a;
+            opacity: 0.9;
+        }
+
+        .legend-swatch {
+            width: 26px;
+            height: 26px;
+            border-radius: 8px;
+            border: 2px solid;
+            box-shadow: 0 0 12px rgba(0,0,0,0.35);
+            flex-shrink: 0;
+        }
+
+        .legend-swatch.legend-ideal {
+            background: var(--color-ideal);
+            border-color: rgba(27, 127, 75, 0.85);
+            box-shadow: 0 0 18px rgba(46, 204, 113, 0.4);
+        }
+
+        .legend-swatch.legend-caution {
+            background: var(--color-caution);
+            border-color: rgba(199, 120, 0, 0.8);
+            box-shadow: 0 0 18px rgba(255, 183, 77, 0.35);
+        }
+
+        .legend-swatch.legend-poor {
+            background: var(--color-poor);
+            border-color: rgba(183, 28, 28, 0.8);
+            box-shadow: 0 0 18px rgba(255, 90, 95, 0.35);
+        }
 
         .spinner {
             display: inline-flex;
@@ -253,7 +306,194 @@
             padding: 12px 20px;
             border-top: 1px solid #404040;
             font-size: 0.85em;
-            color: #b0b0b0;
+            color: #cfd8dc;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        #statusText {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .status-metrics {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            font-size: 0.78em;
+            letter-spacing: 0.02em;
+            text-transform: uppercase;
+            font-weight: 600;
+            background: rgba(255,255,255,0.05);
+            white-space: nowrap;
+        }
+
+        .status-chip strong {
+            font-size: 1.1em;
+            color: inherit;
+        }
+
+        .status-chip .chip-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .status-chip.average {
+            background: rgba(123, 176, 255, 0.18);
+            border-color: rgba(123, 176, 255, 0.5);
+            color: #9ec5ff;
+        }
+
+        .status-chip.ideal {
+            background: rgba(46, 204, 113, 0.18);
+            border-color: rgba(27, 127, 75, 0.6);
+            color: #80f7b3;
+        }
+
+        .status-chip.caution {
+            background: rgba(255, 183, 77, 0.2);
+            border-color: rgba(199, 120, 0, 0.6);
+            color: #ffd59a;
+        }
+
+        .status-chip.poor {
+            background: rgba(255, 90, 95, 0.18);
+            border-color: rgba(183, 28, 28, 0.6);
+            color: #ffb3b6;
+        }
+
+        .popup-content {
+            font-size: 0.85em;
+        }
+
+        .popup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .popup-header strong {
+            font-size: 1em;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            color: #e8f5e9;
+        }
+
+        .popup-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 9px;
+            border-radius: 999px;
+            border: 1px solid transparent;
+            font-size: 0.7em;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            font-weight: 600;
+        }
+
+        .popup-badge .badge-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            box-shadow: 0 0 8px currentColor;
+        }
+
+        .popup-badge.ideal {
+            background: rgba(46, 204, 113, 0.15);
+            border-color: rgba(27, 127, 75, 0.45);
+            color: #81f7b3;
+        }
+
+        .popup-badge.caution {
+            background: rgba(255, 183, 77, 0.15);
+            border-color: rgba(199, 120, 0, 0.45);
+            color: #ffd59a;
+        }
+
+        .popup-badge.poor {
+            background: rgba(255, 90, 95, 0.15);
+            border-color: rgba(183, 28, 28, 0.45);
+            color: #ffb3b6;
+        }
+
+        .popup-score {
+            margin-bottom: 14px;
+        }
+
+        .score-number {
+            font-size: 1.8em;
+            font-weight: 700;
+            color: #ffffff;
+        }
+
+        .score-bar {
+            width: 100%;
+            height: 8px;
+            border-radius: 999px;
+            background: rgba(255,255,255,0.08);
+            margin: 6px 0 4px;
+            overflow: hidden;
+        }
+
+        .score-fill {
+            height: 100%;
+            border-radius: inherit;
+        }
+
+        .score-fill.ideal { background: var(--color-ideal); }
+        .score-fill.caution { background: var(--color-caution); }
+        .score-fill.poor { background: var(--color-poor); }
+
+        .score-caption {
+            font-size: 0.75em;
+            color: #b8d49a;
+            line-height: 1.4;
+        }
+
+        .popup-section {
+            margin-bottom: 12px;
+        }
+
+        .popup-section strong {
+            display: block;
+            margin-bottom: 6px;
+            color: #e0e0e0;
+        }
+
+        .popup-section small {
+            color: #c7c7c7;
+            line-height: 1.5;
+            display: block;
+        }
+
+        .popup-warning {
+            padding: 8px 10px;
+            border-radius: 6px;
+            background: rgba(255, 90, 95, 0.15);
+            border: 1px solid rgba(183, 28, 28, 0.45);
+            color: #ffb3b6;
+            font-size: 0.78em;
+            margin-bottom: 10px;
+            line-height: 1.4;
         }
 
         .disclaimer {
@@ -431,18 +671,28 @@
                 </div>
 
                 <div class="legend">
-                    <h3>Legend</h3>
+                    <h3>Suitability legend</h3>
+                    <p class="legend-description">Colours highlight habitat readiness at a glance. Rainfall and the combined score determine which band a cell belongs to.</p>
                     <div class="legend-item">
-                        <span class="legend-color ideal"></span>
-                        <span>Ideal (≥0.70 + recent rain)</span>
+                        <span class="legend-swatch legend-ideal"></span>
+                        <div>
+                            <strong>Prime habitat</strong>
+                            <div class="legend-detail">Score ≥ 0.70 with 72&nbsp;h rainfall in the sweet spot</div>
+                        </div>
                     </div>
                     <div class="legend-item">
-                        <span class="legend-color good"></span>
-                        <span>Good base conditions</span>
+                        <span class="legend-swatch legend-caution"></span>
+                        <div>
+                            <strong>Dry but promising</strong>
+                            <div class="legend-detail">Base metrics are solid but more rainfall is needed</div>
+                        </div>
                     </div>
                     <div class="legend-item">
-                        <span class="legend-color poor"></span>
-                        <span>Not ideal / waterlogged</span>
+                        <span class="legend-swatch legend-poor"></span>
+                        <div>
+                            <strong>Unfavourable</strong>
+                            <div class="legend-detail">Score &lt; 0.50 or waterlogging limits fruiting</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -452,6 +702,12 @@
             <div id="map"></div>
             <div id="statusBar" class="status-bar">
                 <span id="statusText">Initializing map...</span>
+                <div class="status-metrics">
+                    <span class="status-chip average">Avg score <strong id="avgScoreChip">0.00</strong></span>
+                    <span class="status-chip ideal"><span class="chip-dot"></span>Prime <strong id="idealCount">0</strong></span>
+                    <span class="status-chip caution"><span class="chip-dot"></span>Needs rain <strong id="cautionCount">0</strong></span>
+                    <span class="status-chip poor"><span class="chip-dot"></span>Unfavourable <strong id="poorCount">0</strong></span>
+                </div>
             </div>
         </div>
     </div>
@@ -490,10 +746,32 @@
                 this.weatherCache = new Map();
                 this.soilCache = new Map();
                 this.landcoverCache = new Map();
-                
+
+                this.categoryStyles = {
+                    ideal: {
+                        fill: '#2ecc71',
+                        border: '#1b7f4b',
+                        label: 'Prime habitat',
+                        description: 'Score meets the target and rainfall is supportive.'
+                    },
+                    caution: {
+                        fill: '#ffb74d',
+                        border: '#c77800',
+                        label: 'Needs rain',
+                        description: 'Baseline looks good but recent rain is below the trigger window.',
+                        dashArray: '6 4'
+                    },
+                    poor: {
+                        fill: '#ff5a5f',
+                        border: '#b71c1c',
+                        label: 'Unfavourable',
+                        description: 'Conditions are currently limiting fruiting potential.'
+                    }
+                };
+
                 this.isLoading = false;
                 this.lastUpdate = null;
-                
+
                 this.init();
             }
             
@@ -518,7 +796,14 @@
                     maxZoom: 12,
                     maxBounds: this.ukBounds
                 });
-                
+
+                this.map.createPane('suitabilityPane');
+                const suitabilityPane = this.map.getPane('suitabilityPane');
+                if (suitabilityPane) {
+                    suitabilityPane.style.zIndex = 430;
+                    suitabilityPane.style.mixBlendMode = 'normal';
+                }
+
                 // Add base layer
                 const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     attribution: '© OpenStreetMap contributors',
@@ -1009,21 +1294,26 @@
                 // Final score
                 let final = Math.max(0, Math.min(1, base + rainBonus));
                 if (waterlogged) final = Math.min(final, 0.49);
-                
-                // Color determination
-                let color;
+
+                // Category + colour styling
+                let category = 'poor';
                 if (final >= 0.70 && rainfall72h >= this.rainThresholds.min && rainfall72h <= this.rainThresholds.max) {
-                    color = '#4CAF50'; // Green
+                    category = 'ideal';
                 } else if (final >= 0.50 && rainfall72h < this.rainThresholds.min) {
-                    color = '#FF9800'; // Orange
-                } else {
-                    color = '#F44336'; // Red
+                    category = 'caution';
                 }
-                
+
+                const style = this.categoryStyles[category] || this.categoryStyles.poor;
+
                 return {
                     base,
                     final,
-                    color,
+                    color: style.fill,
+                    borderColor: style.border,
+                    category,
+                    categoryLabel: style.label,
+                    categoryDescription: style.description,
+                    dashArray: style.dashArray || null,
                     components: {
                         landcover: landcoverScore,
                         ph: phScore,
@@ -1065,30 +1355,43 @@
                 };
                 
                 this.gridLayer = L.geoJSON(geojsonData, {
-                    style: (feature) => ({
-                        fillColor: feature.properties.suitability.color,
-                        weight: 0.5,
-                        opacity: 0.6,
-                        color: '#333',
-                        fillOpacity: 0.7
-                    }),
+                    pane: 'suitabilityPane',
+                    style: (feature) => {
+                        const suitability = feature.properties.suitability;
+                        const category = suitability.category;
+                        const styleDef = this.categoryStyles[category] || this.categoryStyles.poor;
+                        const fillOpacity = category === 'ideal' ? 0.78 : category === 'caution' ? 0.64 : 0.58;
+                        const weight = category === 'poor' ? 1.1 : 0.9;
+
+                        return {
+                            fillColor: suitability.color,
+                            weight,
+                            opacity: 0.9,
+                            color: suitability.borderColor || styleDef.border,
+                            fillOpacity,
+                            dashArray: suitability.dashArray || styleDef.dashArray || null
+                        };
+                    },
                     onEachFeature: (feature, layer) => {
                         this.bindCellPopup(layer, feature.properties);
-                        
+
                         layer.on('mouseover', () => {
+                            const category = feature.properties.suitability.category;
+                            const styleDef = this.categoryStyles[category] || this.categoryStyles.poor;
                             layer.setStyle({
                                 weight: 2,
                                 opacity: 1,
-                                fillOpacity: 0.9
+                                color: styleDef.border,
+                                fillOpacity: category === 'ideal' ? 0.9 : category === 'caution' ? 0.78 : 0.7,
+                                dashArray: ''
                             });
+                            if (layer.bringToFront) {
+                                layer.bringToFront();
+                            }
                         });
-                        
+
                         layer.on('mouseout', () => {
-                            layer.setStyle({
-                                weight: 0.5,
-                                opacity: 0.6,
-                                fillOpacity: 0.7
-                            });
+                            this.gridLayer.resetStyle(layer);
                         });
                     }
                 });
@@ -1104,42 +1407,69 @@
             
             bindCellPopup(layer, properties) {
                 const { suitability, weather, soil, landcover } = properties;
-                
+
+                const scorePercent = Math.round(suitability.final * 100);
+                const clampedPercent = Math.min(100, Math.max(0, scorePercent));
+                const category = suitability.category;
+                const categoryLabel = suitability.categoryLabel || (this.categoryStyles[category]?.label ?? 'Suitability');
+                const categoryDescription = suitability.categoryDescription || (this.categoryStyles[category]?.description ?? '');
+
+                const rainfallAmount = typeof weather.rainfall_72h === 'number' ? weather.rainfall_72h : 0;
+                const tempMax = typeof weather.temp_max === 'number' ? weather.temp_max : 0;
+                const tempMin = typeof weather.temp_min === 'number' ? weather.temp_min : 0;
+                const rainfallRange = `${this.rainThresholds.min}-${this.rainThresholds.max}`;
+
+                let rainfallMessage = 'Within preferred window';
+                if (suitability.waterlogged) {
+                    rainfallMessage = 'Too wet for current drainage class';
+                } else if (rainfallAmount < this.rainThresholds.min) {
+                    rainfallMessage = 'Below trigger threshold';
+                } else if (rainfallAmount > this.rainThresholds.max) {
+                    rainfallMessage = 'Above preferred window';
+                }
+
+                const landcoverLabel = landcover.landcover || 'unknown cover';
+                const soilDrainage = soil.drainage || 'unknown';
+                const soilPh = typeof soil.ph === 'number' ? soil.ph : 0;
+
                 const popupContent = `
-                    <div style="font-size: 12px; line-height: 1.4; color: #e0e0e0;">
-                        <h4 style="margin: 0 0 10px 0; color: #a8d48a;">Habitat Suitability Analysis</h4>
-                        
-                        <div style="margin-bottom: 10px;">
-                            <strong>Final Score:</strong> ${suitability.final.toFixed(3)}<br>
-                            <strong>Classification:</strong> <span style="color: ${suitability.color};">●</span>
-                            ${suitability.final >= 0.70 ? 'Ideal' : suitability.final >= 0.50 ? 'Good Base' : 'Poor'}
+                    <div class="popup-content">
+                        <div class="popup-header">
+                            <strong>Habitat suitability</strong>
+                            <span class="popup-badge ${category}">
+                                <span class="badge-dot"></span>${categoryLabel}
+                            </span>
                         </div>
-                        
-                        <div style="margin-bottom: 10px;">
-                            <strong>Component Scores:</strong><br>
+                        <div class="popup-score">
+                            <div class="score-number">${clampedPercent}%</div>
+                            <div class="score-bar">
+                                <div class="score-fill ${category}" style="width: ${clampedPercent}%;"></div>
+                            </div>
+                            <div class="score-caption">${categoryDescription}</div>
+                        </div>
+                        ${suitability.waterlogged ? '<div class="popup-warning">⚠ Waterlogged conditions detected – drainage is restricting the rainfall bonus.</div>' : ''}
+                        <div class="popup-section">
+                            <strong>Component scores</strong>
                             <small>
-                            Land Cover: ${suitability.components.landcover.toFixed(3)} (${landcover.landcover})<br>
-                            Soil pH: ${suitability.components.ph.toFixed(3)} (pH ${soil.ph.toFixed(1)})<br>
-                            Drainage: ${suitability.components.drainage.toFixed(3)} (${soil.drainage})<br>
-                            Grazing: ${suitability.components.grazing.toFixed(3)}<br>
-                            Terrain: ${suitability.components.terrain.toFixed(3)}<br>
-                            Climate: ${suitability.components.climate.toFixed(3)}
+                                Land cover: ${suitability.components.landcover.toFixed(2)} (${landcoverLabel})<br>
+                                Soil pH: ${suitability.components.ph.toFixed(2)} (pH ${soilPh.toFixed(1)})<br>
+                                Drainage: ${suitability.components.drainage.toFixed(2)} (${soilDrainage})<br>
+                                Grazing proxy: ${suitability.components.grazing.toFixed(2)}<br>
+                                Terrain: ${suitability.components.terrain.toFixed(2)}<br>
+                                Climate: ${suitability.components.climate.toFixed(2)}
                             </small>
                         </div>
-                        
-                        <div style="margin-bottom: 10px;">
-                            <strong>Recent Weather (72h):</strong><br>
+                        <div class="popup-section">
+                            <strong>Recent weather (72&nbsp;h)</strong>
                             <small>
-                            Rainfall: ${weather.rainfall_72h.toFixed(1)}mm<br>
-                            Max Temp: ${weather.temp_max.toFixed(1)}°C<br>
-                            Min Temp: ${weather.temp_min.toFixed(1)}°C
+                                Rainfall: ${rainfallAmount.toFixed(1)} mm (${rainfallMessage})<br>
+                                Ideal window: ${rainfallRange} mm<br>
+                                Max temp: ${tempMax.toFixed(1)}°C | Min temp: ${tempMin.toFixed(1)}°C
                             </small>
                         </div>
-                        
-                        ${suitability.waterlogged ? '<div style="color: #ff6b6b; font-weight: bold;">⚠ Waterlogged conditions detected</div>' : ''}
-                        
-                        <div style="font-size: 10px; color: #999; margin-top: 8px;">
-                            Data: ${weather.source} | ${soil.source} | ${landcover.source}
+                        <div class="popup-section">
+                            <strong>Data sources</strong>
+                            <small>${weather.source} weather · ${soil.source} soil · ${landcover.source} land cover</small>
                         </div>
                     </div>
                 `;
@@ -1151,13 +1481,49 @@
             }
             
             updateStatistics(results) {
-                const avgScore = results.reduce((sum, r) => sum + r.suitability.final, 0) / results.length;
-                const idealCount = results.filter(r => r.suitability.color === '#4CAF50').length;
-                const goodCount = results.filter(r => r.suitability.color === '#FF9800').length;
-                const poorCount = results.filter(r => r.suitability.color === '#F44336').length;
-                
-                const stats = `Avg: ${avgScore.toFixed(3)} | Ideal: ${idealCount} | Good: ${goodCount} | Poor: ${poorCount}`;
-                this.updateStatus(`Analysis complete - ${stats}`);
+                if (!Array.isArray(results) || results.length === 0) {
+                    this.updateStatus('Awaiting analysis results');
+                    this.updateSummaryChips({ ideal: 0, caution: 0, poor: 0 }, 0);
+                    return;
+                }
+
+                const summary = { ideal: 0, caution: 0, poor: 0 };
+                for (const result of results) {
+                    const category = result.suitability?.category;
+                    if (summary.hasOwnProperty(category)) {
+                        summary[category] += 1;
+                    } else {
+                        summary.poor += 1;
+                    }
+                }
+
+                const avgScore = results.reduce((sum, r) => sum + (r.suitability?.final || 0), 0) / results.length;
+                const timestamp = this.lastUpdate instanceof Date ? this.lastUpdate : new Date();
+                if (!(this.lastUpdate instanceof Date)) {
+                    this.lastUpdate = timestamp;
+                }
+                this.updateStatus(`Analysis complete · ${results.length} cells · ${timestamp.toLocaleTimeString()}`);
+                this.updateSummaryChips(summary, avgScore);
+            }
+
+            updateSummaryChips(summary, avgScore) {
+                const avgElement = document.getElementById('avgScoreChip');
+                if (avgElement) {
+                    avgElement.textContent = avgScore.toFixed(2);
+                }
+
+                const mapping = [
+                    { key: 'ideal', elementId: 'idealCount' },
+                    { key: 'caution', elementId: 'cautionCount' },
+                    { key: 'poor', elementId: 'poorCount' }
+                ];
+
+                mapping.forEach(({ key, elementId }) => {
+                    const element = document.getElementById(elementId);
+                    if (element) {
+                        element.textContent = summary?.[key] ? summary[key] : 0;
+                    }
+                });
             }
             
             toggleLayer(layerType, show) {
