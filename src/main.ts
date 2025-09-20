@@ -14,7 +14,10 @@ import {
 import { SoilGridsClient } from './data/soilgrids';
 import { WorldCoverClient } from './data/worldcover';
 import { WeatherClient } from './data/weather';
+import { mockSoilGrid } from './data/mock/soilgrids';
+import { mockWorldCover } from './data/mock/worldcover';
 import { debounce } from './utils/debounce';
+import { isAbortError } from './utils/errors';
 import type { LandCoverGrid, SoilGrid, SuitabilityWorkerOutput, WeatherGrid } from './types';
 import { WeatherOverlay } from './types';
 import SuitabilityWorker from './workers/suitabilityWorker?worker';
@@ -181,6 +184,7 @@ let latestSoil: SoilGrid | null = null;
 let latestLand: LandCoverGrid | null = null;
 let latestBBox: BoundingBox | null = null;
 let latestWeather: WeatherGrid | null = null;
+let lastDataWasSynthetic = false;
 
 function isSuitabilityWorkerOutput(value: unknown): value is SuitabilityWorkerOutput {
   if (!value || typeof value !== 'object') {
@@ -270,6 +274,47 @@ function cloneWeather(grid: WeatherGrid): WeatherGrid {
     precipitation: new Float32Array(grid.precipitation),
     temperature: new Float32Array(grid.temperature)
   };
+}
+
+type SoilFetchResult = { grid: SoilGrid; usedFallback: boolean };
+type LandFetchResult = { grid: LandCoverGrid; usedFallback: boolean };
+
+async function fetchSoilWithFallback(
+  bbox: BoundingBox,
+  width: number,
+  height: number
+): Promise<SoilFetchResult> {
+  try {
+    const grid = await soilClient.fetchGrid(bbox, width, height);
+    return { grid, usedFallback: false };
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+    if (import.meta.env.DEV) {
+      console.warn('Falling back to synthetic SoilGrids data', error);
+    }
+    return { grid: mockSoilGrid(width, height, bbox), usedFallback: true };
+  }
+}
+
+async function fetchLandCoverWithFallback(
+  bbox: BoundingBox,
+  width: number,
+  height: number
+): Promise<LandFetchResult> {
+  try {
+    const grid = await worldCoverClient.fetchGrid(bbox, width, height);
+    return { grid, usedFallback: false };
+  } catch (error) {
+    if (isAbortError(error)) {
+      throw error;
+    }
+    if (import.meta.env.DEV) {
+      console.warn('Falling back to synthetic WorldCover data', error);
+    }
+    return { grid: mockWorldCover(width, height, bbox), usedFallback: true };
+  }
 }
 
 function setPending(isPending: boolean) {
@@ -383,11 +428,11 @@ function handleWorkerResult(result: SuitabilityWorkerOutput) {
   }
   lastCompletedRequest = result.requestId;
   latestResult = result;
+  updateStats(result);
   try {
     drawSuitability(result);
-    updateStats(result);
   } catch (error) {
-    console.error('Failed to process suitability result', error);
+    console.error('Failed to draw suitability overlay', error);
   } finally {
     setPending(false);
   }
@@ -404,6 +449,9 @@ worker.onmessage = (event: MessageEvent<unknown>) => {
 };
 
 function handleError(error: unknown) {
+  if (isAbortError(error)) {
+    return;
+  }
   console.error(error);
   if (statusMessage) {
     statusMessage.textContent = error instanceof Error ? error.message : 'Failed to update suitability.';
@@ -424,6 +472,11 @@ async function requestUpdate({ forceFromCache = false } = {}) {
 
   if (forceFromCache && latestSoil && latestLand && bboxAlmostEqual(latestBBox, bbox)) {
     const cachedWeather = wantWeather && latestWeather ? cloneWeather(latestWeather) : null;
+    if (statusMessage) {
+      statusMessage.textContent = lastDataWasSynthetic
+        ? 'Live map layers unavailable – showing synthetic suitability data.'
+        : '';
+    }
     worker.postMessage({
       soil: cloneSoil(latestSoil),
       landCover: cloneLand(latestLand),
@@ -449,6 +502,9 @@ async function requestUpdate({ forceFromCache = false } = {}) {
             .fetchGrid(bbox, width, height)
             .then((grid) => grid)
             .catch((error) => {
+              if (isAbortError(error)) {
+                throw error;
+              }
               if (import.meta.env.DEV) {
                 console.warn('Weather overlay unavailable', error);
               }
@@ -456,11 +512,22 @@ async function requestUpdate({ forceFromCache = false } = {}) {
             })
         : Promise.resolve<WeatherGrid | null>(null);
 
-    const [soilGrid, landCoverGrid, weatherGrid] = await Promise.all([
-      soilClient.fetchGrid(bbox, width, height),
-      worldCoverClient.fetchGrid(bbox, width, height),
+    const [soilResult, landResult, weatherGrid] = await Promise.all([
+      fetchSoilWithFallback(bbox, width, height),
+      fetchLandCoverWithFallback(bbox, width, height),
       weatherPromise
     ]);
+
+    const soilGrid = soilResult.grid;
+    const landCoverGrid = landResult.grid;
+    const usedSynthetic = soilResult.usedFallback || landResult.usedFallback;
+
+    lastDataWasSynthetic = usedSynthetic;
+    if (statusMessage) {
+      statusMessage.textContent = usedSynthetic
+        ? 'Live map layers unavailable – showing synthetic suitability data.'
+        : '';
+    }
 
     latestSoil = cloneSoil(soilGrid);
     latestLand = cloneLand(landCoverGrid);
