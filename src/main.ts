@@ -112,7 +112,7 @@ const poorCountEl = document.getElementById('poor-count');
 const map = L.map('map', {
   preferCanvas: true,
   minZoom: 5,
-  maxZoom: 13,
+  maxZoom: 18,
   zoomControl: true,
   attributionControl: true
 }).setView([54.5, -2.5], 6);
