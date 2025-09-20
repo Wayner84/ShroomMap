@@ -22,6 +22,13 @@ export interface LandCoverGrid {
   codes: Uint8Array;
 }
 
+export interface WeatherGrid {
+  width: number;
+  height: number;
+  precipitation: Float32Array;
+  temperature: Float32Array;
+}
+
 export interface SuitabilityResult {
   width: number;
   height: number;
@@ -41,6 +48,7 @@ export interface SuitabilityResult {
 export interface SuitabilityWorkerInput {
   soil: SoilGrid;
   landCover: LandCoverGrid;
+  weather?: WeatherGrid;
   bbox: BoundingBox;
   requestId: number;
   config: {
@@ -48,8 +56,15 @@ export interface SuitabilityWorkerInput {
   };
 }
 
+export const enum WeatherOverlay {
+  Neutral = 0,
+  Dry = 1,
+  Favourable = 2
+}
+
 export interface SuitabilityWorkerOutput extends SuitabilityResult {
   bbox: BoundingBox;
   requestId: number;
   woodlandMask: Uint8Array;
+  weatherMask: Uint8Array;
 }
