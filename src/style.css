@@ -25,6 +25,12 @@ body,
 
 #app {
   display: grid;
+
+  grid-template-columns: minmax(320px, 360px) 1fr;
+  grid-template-rows: 100vh;
+  height: 100vh;
+  width: 100%;
+
   grid-template-columns: 360px 1fr;
 }
 
@@ -34,6 +40,11 @@ body,
   display: flex;
   flex-direction: column;
   overflow: hidden;
+
+  grid-column: 1;
+  grid-row: 1;
+
+
 }
 
 .sidebar header {
@@ -152,13 +163,25 @@ body,
   }
 }
 
+
+.sidebar-toggle {
+  display: none;
+}
+
 .map-container {
   position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  height: 100vh;
+  width: 100%;
+
 }
 
 #map {
   width: 100%;
-  height: 100vh;
+
+  height: 100%;
+
 }
 
 .suitability-canvas {
@@ -167,6 +190,8 @@ body,
   left: 0;
   pointer-events: none;
   mix-blend-mode: screen;
+
+
 }
 
 .status-panel {
@@ -239,6 +264,9 @@ body,
 @media (max-width: 1024px) {
   #app {
     grid-template-columns: 1fr;
+
+    grid-template-rows: 100vh;
+
   }
 
   .sidebar {
@@ -255,6 +283,9 @@ body,
   }
 
   .sidebar-toggle {
+
+    display: inline-flex;
+
     position: absolute;
     top: 16px;
     left: 16px;
@@ -269,5 +300,8 @@ body,
 
   .map-container {
     grid-column: 1;
+
+    grid-row: 1;
+
   }
 }
