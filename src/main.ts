@@ -86,7 +86,16 @@ app.innerHTML = `
 
 const sidebar = document.querySelector<HTMLDivElement>('.sidebar');
 const sidebarToggle = document.getElementById('sidebar-toggle');
+
 const SIDEBAR_TRANSITION_MS = 360;
+
+sidebarToggle?.addEventListener('click', () => {
+  const open = sidebar?.dataset.open === 'true';
+  if (sidebar) {
+    sidebar.dataset.open = open ? 'false' : 'true';
+  }
+});
+
 
 const soilToggle = document.getElementById('soil-layer-toggle') as HTMLInputElement;
 const landToggle = document.getElementById('land-layer-toggle') as HTMLInputElement;
@@ -184,6 +193,7 @@ sidebarToggle?.addEventListener('click', () => {
 window.addEventListener('resize', () => {
   map.invalidateSize();
 });
+
 
 function bboxAlmostEqual(a: BoundingBox | null, b: BoundingBox | null, epsilon = 1e-3) {
   if (!a || !b) {
