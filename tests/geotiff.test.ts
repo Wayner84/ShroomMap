@@ -1,6 +1,48 @@
 import { describe, expect, it } from 'vitest';
 
-import { ensureGeoTiffResponse, wrapGeoTiffDecode } from '../src/utils/geotiff';
+import { gzipSync, zipSync } from 'fflate';
+
+import { ensureGeoTiffResponse, extractGeoTiffBuffer, wrapGeoTiffDecode } from '../src/utils/geotiff';
+
+function toArrayBuffer(view: Uint8Array): ArrayBuffer {
+  return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
+}
+
+describe('extractGeoTiffBuffer', () => {
+  it('returns the original buffer for plain GeoTIFF data', () => {
+    const buffer = new Uint8Array([0x49, 0x49, 0x2a, 0x00]).buffer;
+    expect(extractGeoTiffBuffer(buffer)).toBe(buffer);
+  });
+
+  it('extracts the first GeoTIFF entry from a ZIP archive', () => {
+    const tifData = new Uint8Array([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00]);
+    const archive = zipSync({
+      'meta.txt': new Uint8Array([1, 2, 3]),
+      'tile.tif': tifData
+    });
+
+    const extracted = extractGeoTiffBuffer(toArrayBuffer(archive));
+    expect(new Uint8Array(extracted)).toEqual(tifData);
+  });
+
+  it('falls back to the first file when no GeoTIFF is present', () => {
+    const payload = new Uint8Array([0xde, 0xad, 0xbe, 0xef]);
+    const archive = zipSync({
+      'readme.txt': payload
+    });
+
+    const extracted = extractGeoTiffBuffer(toArrayBuffer(archive));
+    expect(new Uint8Array(extracted)).toEqual(payload);
+  });
+
+  it('inflates GeoTIFF data wrapped in a gzip stream', () => {
+    const tifData = new Uint8Array([0x49, 0x49, 0x2a, 0x00, 0x08, 0x00]);
+    const compressed = gzipSync(tifData);
+
+    const extracted = extractGeoTiffBuffer(toArrayBuffer(compressed));
+    expect(new Uint8Array(extracted)).toEqual(tifData);
+  });
+});
 
 describe('ensureGeoTiffResponse', () => {
   it('accepts buffers with TIFF byte order markers', () => {

@@ -1,4 +1,75 @@
+import { gunzipSync, unzipSync } from 'fflate';
+
 const textDecoder = new TextDecoder();
+
+function arrayBufferFromView(view: Uint8Array): ArrayBuffer {
+  return view.buffer.slice(view.byteOffset, view.byteOffset + view.byteLength);
+}
+
+function looksLikeZipArchive(buffer: ArrayBuffer): boolean {
+  if (buffer.byteLength < 4) {
+    return false;
+  }
+  const signature = new Uint8Array(buffer, 0, 4);
+  const isPkZip = signature[0] === 0x50 && signature[1] === 0x4b;
+  if (!isPkZip) {
+    return false;
+  }
+  const typeByte = signature[2];
+  const validTypes = [0x03, 0x05, 0x07];
+  return validTypes.includes(typeByte);
+}
+
+function looksLikeGzipStream(buffer: ArrayBuffer): boolean {
+  if (buffer.byteLength < 2) {
+    return false;
+  }
+  const signature = new Uint8Array(buffer, 0, 2);
+  return signature[0] === 0x1f && signature[1] === 0x8b;
+}
+
+function extractFromZip(view: Uint8Array): ArrayBuffer {
+  try {
+    const entries = unzipSync(view);
+    const entryNames = Object.keys(entries);
+    if (entryNames.length === 0) {
+      throw new Error('Archive contained no files');
+    }
+
+    const preferredName =
+      entryNames.find((name) => /\.tiff?$/i.test(name)) ?? entryNames[0];
+    const extracted = entries[preferredName];
+    if (!(extracted instanceof Uint8Array)) {
+      throw new Error(`Unexpected entry type for "${preferredName}"`);
+    }
+    return arrayBufferFromView(extracted);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to extract GeoTIFF from ZIP archive: ${message}`);
+  }
+}
+
+function extractFromGzip(view: Uint8Array): ArrayBuffer {
+  try {
+    const inflated = gunzipSync(view);
+    return arrayBufferFromView(inflated);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to extract GeoTIFF from gzip stream: ${message}`);
+  }
+}
+
+export function extractGeoTiffBuffer(source: ArrayBuffer): ArrayBuffer {
+  if (looksLikeZipArchive(source)) {
+    return extractFromZip(new Uint8Array(source));
+  }
+
+  if (looksLikeGzipStream(source)) {
+    return extractFromGzip(new Uint8Array(source));
+  }
+
+  return source;
+}
 
 function normaliseWhitespace(value: string): string {
   return value.replace(/\s+/g, ' ').trim();
