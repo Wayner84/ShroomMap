@@ -208,6 +208,7 @@ body,
   align-items: center;
   backdrop-filter: blur(12px);
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  z-index: 1200;
 }
 
 .status-chip {
