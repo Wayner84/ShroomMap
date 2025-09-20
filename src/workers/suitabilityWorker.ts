@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 
 import type { SuitabilityWorkerInput, SuitabilityWorkerOutput } from '../types';
-import { deriveLandCoverClasses, LandClass } from '../scoring/landcover';
+import { deriveLandCoverClasses, LandClass, WOODLAND_CODE } from '../scoring/landcover';
 import { computeSoilScore, mapScoreToCategory, SuitabilityCategory } from '../scoring';
 import { RunningAverage } from '../scoring/average';
 
@@ -14,6 +14,7 @@ ctx.onmessage = (event: MessageEvent<SuitabilityWorkerInput>) => {
   const codeLength = width * height;
   const codes = landCover.codes.length === codeLength ? landCover.codes : landCover.codes.slice(0, codeLength);
   const landClasses = deriveLandCoverClasses(codes, width, height);
+  const woodlandMask = new Uint8Array(width * height);
   const scores = new Float32Array(width * height);
   const categories = new Uint8Array(width * height);
   const average = new RunningAverage();
@@ -37,6 +38,7 @@ ctx.onmessage = (event: MessageEvent<SuitabilityWorkerInput>) => {
 
     scores[idx] = breakdown.overall;
     categories[idx] = category;
+    woodlandMask[idx] = codes[idx] === WOODLAND_CODE ? 1 : 0;
     average.add(breakdown.overall);
 
     if (category === SuitabilityCategory.Ideal) {
@@ -53,6 +55,7 @@ ctx.onmessage = (event: MessageEvent<SuitabilityWorkerInput>) => {
     height,
     scores,
     categories,
+    woodlandMask,
     averageScore: average.average,
     sampleCount: average.count,
     countsByCategory: counts,
@@ -60,5 +63,5 @@ ctx.onmessage = (event: MessageEvent<SuitabilityWorkerInput>) => {
     requestId
   };
 
-  ctx.postMessage(payload, [scores.buffer, categories.buffer]);
+  ctx.postMessage(payload, [scores.buffer, categories.buffer, woodlandMask.buffer]);
 };

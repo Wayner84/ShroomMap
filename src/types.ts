@@ -51,4 +51,5 @@ export interface SuitabilityWorkerInput {
 export interface SuitabilityWorkerOutput extends SuitabilityResult {
   bbox: BoundingBox;
   requestId: number;
+  woodlandMask: Uint8Array;
 }

@@ -7,7 +7,7 @@ export const enum LandClass {
 const IDEAL_CODES = new Set([20, 30, 100]);
 const CAUTION_CODES = new Set([90, 95]);
 const AVOID_CODES = new Set([40, 50, 60, 70, 80]);
-const WOODLAND_CODE = 10;
+export const WOODLAND_CODE = 10;
 
 export function deriveLandCoverClasses(codes: Uint8Array, width: number, height: number): Uint8Array {
   const classes = new Uint8Array(width * height);
