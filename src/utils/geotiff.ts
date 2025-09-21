@@ -1,4 +1,6 @@
+import { gunzipSync, unzipSync } from 'fflate';
 import { unzipSync } from 'fflate';
+
 
 const textDecoder = new TextDecoder();
 
@@ -20,6 +22,18 @@ function looksLikeZipArchive(buffer: ArrayBuffer): boolean {
   return validTypes.includes(typeByte);
 }
 
+function looksLikeGzipStream(buffer: ArrayBuffer): boolean {
+  if (buffer.byteLength < 2) {
+    return false;
+  }
+  const signature = new Uint8Array(buffer, 0, 2);
+  return signature[0] === 0x1f && signature[1] === 0x8b;
+}
+
+function extractFromZip(view: Uint8Array): ArrayBuffer {
+  try {
+    const entries = unzipSync(view);
+
 export function extractGeoTiffBuffer(source: ArrayBuffer): ArrayBuffer {
   if (!looksLikeZipArchive(source)) {
     return source;
@@ -27,6 +41,7 @@ export function extractGeoTiffBuffer(source: ArrayBuffer): ArrayBuffer {
 
   try {
     const entries = unzipSync(new Uint8Array(source));
+
     const entryNames = Object.keys(entries);
     if (entryNames.length === 0) {
       throw new Error('Archive contained no files');
@@ -41,8 +56,32 @@ export function extractGeoTiffBuffer(source: ArrayBuffer): ArrayBuffer {
     return arrayBufferFromView(extracted);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`Failed to extract GeoTIFF from archive: ${message}`);
+
+    throw new Error(`Failed to extract GeoTIFF from ZIP archive: ${message}`);
   }
+}
+
+function extractFromGzip(view: Uint8Array): ArrayBuffer {
+  try {
+    const inflated = gunzipSync(view);
+    return arrayBufferFromView(inflated);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to extract GeoTIFF from gzip stream: ${message}`);
+  }
+}
+
+export function extractGeoTiffBuffer(source: ArrayBuffer): ArrayBuffer {
+  if (looksLikeZipArchive(source)) {
+    return extractFromZip(new Uint8Array(source));
+  }
+
+  if (looksLikeGzipStream(source)) {
+    return extractFromGzip(new Uint8Array(source));
+  }
+
+  return source;
+
 }
 
 function normaliseWhitespace(value: string): string {
