@@ -108,12 +108,41 @@ const landToggle = document.getElementById('land-layer-toggle') as HTMLInputElem
 const refreshButton = document.getElementById('refresh-button') as HTMLButtonElement;
 const refreshSpinner = document.getElementById('refresh-spinner') as HTMLSpanElement;
 const statusMessage = document.getElementById('status-message');
+const statusNote = document.querySelector<HTMLParagraphElement>('.status-note');
 const canvas = document.getElementById('suitability-canvas') as HTMLCanvasElement;
 const averageScoreEl = document.getElementById('average-score');
 const sampleCountEl = document.getElementById('sample-count');
 const idealCountEl = document.getElementById('ideal-count');
 const cautionCountEl = document.getElementById('caution-count');
 const poorCountEl = document.getElementById('poor-count');
+
+const MODE_LABELS = {
+  live: 'Live data mode',
+  fallback: 'Synthetic fallback active – live data temporarily unavailable.',
+  mock: 'Mock data mode enabled'
+} as const;
+
+function updateModeNote({ fallbackActive }: { fallbackActive: boolean }) {
+  if (!statusNote) {
+    return;
+  }
+
+  if (USE_MOCK_DATA) {
+    statusNote.textContent = MODE_LABELS.mock;
+    statusNote.dataset.variant = 'mock';
+    return;
+  }
+
+  if (fallbackActive) {
+    statusNote.textContent = MODE_LABELS.fallback;
+    statusNote.dataset.variant = 'fallback';
+  } else {
+    statusNote.textContent = MODE_LABELS.live;
+    statusNote.dataset.variant = 'live';
+  }
+}
+
+updateModeNote({ fallbackActive: false });
 
 const map = L.map('map', {
   preferCanvas: true,
@@ -477,6 +506,7 @@ async function requestUpdate({ forceFromCache = false } = {}) {
         ? 'Live map layers unavailable – showing synthetic suitability data.'
         : '';
     }
+    updateModeNote({ fallbackActive: lastDataWasSynthetic });
     worker.postMessage({
       soil: cloneSoil(latestSoil),
       landCover: cloneLand(latestLand),
@@ -523,6 +553,7 @@ async function requestUpdate({ forceFromCache = false } = {}) {
     const usedSynthetic = soilResult.usedFallback || landResult.usedFallback;
 
     lastDataWasSynthetic = usedSynthetic;
+    updateModeNote({ fallbackActive: usedSynthetic });
     if (statusMessage) {
       statusMessage.textContent = usedSynthetic
         ? 'Live map layers unavailable – showing synthetic suitability data.'

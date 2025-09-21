@@ -91,6 +91,11 @@ body,
   color: var(--text-muted);
 }
 
+.status-note[data-variant='fallback'],
+.status-note[data-variant='mock'] {
+  color: #ffb74d;
+}
+
 .layer-toggle {
   display: flex;
   align-items: center;
