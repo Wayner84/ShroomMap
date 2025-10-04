@@ -16,6 +16,7 @@ import { WorldCoverClient } from './data/worldcover';
 import { WeatherClient } from './data/weather';
 import { mockSoilGrid } from './data/mock/soilgrids';
 import { mockWorldCover } from './data/mock/worldcover';
+import { describeSnapshotCoverage, sampleStaticLandCover, sampleStaticSoilGrid } from './data/static/snapshot';
 import { debounce } from './utils/debounce';
 import { isAbortError } from './utils/errors';
 import type { LandCoverGrid, SoilGrid, SuitabilityWorkerOutput, WeatherGrid } from './types';
@@ -184,7 +185,24 @@ let latestSoil: SoilGrid | null = null;
 let latestLand: LandCoverGrid | null = null;
 let latestBBox: BoundingBox | null = null;
 let latestWeather: WeatherGrid | null = null;
-let lastDataWasSynthetic = false;
+type LayerSource = 'live' | 'static' | 'synthetic';
+
+interface LayerSources {
+  soil: LayerSource;
+  land: LayerSource;
+}
+
+let lastLayerSources: LayerSources = { soil: 'live', land: 'live' };
+
+function describeLayerSources(sources: LayerSources): string {
+  if (sources.soil === 'synthetic' || sources.land === 'synthetic') {
+    return 'Live map layers unavailable – showing synthetic suitability data.';
+  }
+  if (sources.soil === 'static' || sources.land === 'static') {
+    return `Using cached map layers (${describeSnapshotCoverage()}) while live services are offline.`;
+  }
+  return '';
+}
 
 function isSuitabilityWorkerOutput(value: unknown): value is SuitabilityWorkerOutput {
   if (!value || typeof value !== 'object') {
@@ -276,8 +294,8 @@ function cloneWeather(grid: WeatherGrid): WeatherGrid {
   };
 }
 
-type SoilFetchResult = { grid: SoilGrid; usedFallback: boolean };
-type LandFetchResult = { grid: LandCoverGrid; usedFallback: boolean };
+type SoilFetchResult = { grid: SoilGrid; source: LayerSource };
+type LandFetchResult = { grid: LandCoverGrid; source: LayerSource };
 
 async function fetchSoilWithFallback(
   bbox: BoundingBox,
@@ -286,15 +304,22 @@ async function fetchSoilWithFallback(
 ): Promise<SoilFetchResult> {
   try {
     const grid = await soilClient.fetchGrid(bbox, width, height);
-    return { grid, usedFallback: false };
+    return { grid, source: 'live' };
   } catch (error) {
     if (isAbortError(error)) {
       throw error;
     }
+    const snapshot = sampleStaticSoilGrid(bbox, width, height);
+    if (snapshot) {
+      if (import.meta.env.DEV) {
+        console.warn('Using bundled SoilGrids snapshot', error);
+      }
+      return { grid: snapshot, source: 'static' };
+    }
     if (import.meta.env.DEV) {
       console.warn('Falling back to synthetic SoilGrids data', error);
     }
-    return { grid: mockSoilGrid(width, height, bbox), usedFallback: true };
+    return { grid: mockSoilGrid(width, height, bbox), source: 'synthetic' };
   }
 }
 
@@ -305,15 +330,22 @@ async function fetchLandCoverWithFallback(
 ): Promise<LandFetchResult> {
   try {
     const grid = await worldCoverClient.fetchGrid(bbox, width, height);
-    return { grid, usedFallback: false };
+    return { grid, source: 'live' };
   } catch (error) {
     if (isAbortError(error)) {
       throw error;
     }
+    const snapshot = sampleStaticLandCover(bbox, width, height);
+    if (snapshot) {
+      if (import.meta.env.DEV) {
+        console.warn('Using bundled WorldCover snapshot', error);
+      }
+      return { grid: snapshot, source: 'static' };
+    }
     if (import.meta.env.DEV) {
       console.warn('Falling back to synthetic WorldCover data', error);
     }
-    return { grid: mockWorldCover(width, height, bbox), usedFallback: true };
+    return { grid: mockWorldCover(width, height, bbox), source: 'synthetic' };
   }
 }
 
@@ -473,9 +505,7 @@ async function requestUpdate({ forceFromCache = false } = {}) {
   if (forceFromCache && latestSoil && latestLand && bboxAlmostEqual(latestBBox, bbox)) {
     const cachedWeather = wantWeather && latestWeather ? cloneWeather(latestWeather) : null;
     if (statusMessage) {
-      statusMessage.textContent = lastDataWasSynthetic
-        ? 'Live map layers unavailable – showing synthetic suitability data.'
-        : '';
+      statusMessage.textContent = describeLayerSources(lastLayerSources);
     }
     worker.postMessage({
       soil: cloneSoil(latestSoil),
@@ -520,13 +550,11 @@ async function requestUpdate({ forceFromCache = false } = {}) {
 
     const soilGrid = soilResult.grid;
     const landCoverGrid = landResult.grid;
-    const usedSynthetic = soilResult.usedFallback || landResult.usedFallback;
+    const sources: LayerSources = { soil: soilResult.source, land: landResult.source };
 
-    lastDataWasSynthetic = usedSynthetic;
+    lastLayerSources = sources;
     if (statusMessage) {
-      statusMessage.textContent = usedSynthetic
-        ? 'Live map layers unavailable – showing synthetic suitability data.'
-        : '';
+      statusMessage.textContent = describeLayerSources(sources);
     }
 
     latestSoil = cloneSoil(soilGrid);
